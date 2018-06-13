@@ -237,7 +237,7 @@ func extractRepoNameFromURL(githubURL string) string {
 func Remote(repositoryPath, name, repositoryUrl string) error {
 	log.Printf("git.remote.started: %s=%s\n", name, repositoryUrl)
 
-	cmd := exec.Command("git", "remote", "set-url", name, repositoryUrl)
+	cmd := exec.Command("git", "remote", "add", name, repositoryUrl)
 	cmd.Dir = path.Join(repositoryPath)
 	if err := cmd.Run(); err != nil {
 		log.Println("git.remote.failed:", err.Error())

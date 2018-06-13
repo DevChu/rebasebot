@@ -12,36 +12,28 @@ func GitRebase(pr *github.PullRequest) error {
 	
 	filepath := git.GetRepositoryFilePath(pr.Head.Repository.FullName)
 	remoteRepositoryURL := git.GenerateCloneURL(pr.Head.Repository.FullName)
+	upstreamUrl := pr.Base.Repository.CloneUrl
+	originUrl := pr.Head.Repository.CloneUrl
+	isFork := upstreamUrl != originUrl
 
 	if !git.Exists(filepath) {
 		if _, err := git.Clone(remoteRepositoryURL); err != nil {
 			pr.PostComment("I could not pull " + pr.Head.Repository.FullName + " from GitHub.")
 			return err
 		}
+
+		if isFork {
+			if err := git.Remote(filepath, "upstream", upstreamUrl); err != nil {
+				pr.PostComment("I could not add remote: " + upstreamUrl + ".")
+				return err
+			}
+		}
 	}
 
-	upstreamUrl := pr.Base.Repository.CloneUrl
-	originUrl := pr.Head.Repository.CloneUrl
-
-	if upstreamUrl != originUrl {
-		if err := git.Remote(filepath, "upstream", upstreamUrl); err != nil {
-			pr.PostComment("I could not add remote: " + upstreamUrl + ".")
-			return err
-		}
-
+	if isFork {
 		if err := git.FetchUpstream(filepath); err != nil {
 			git.Prune(filepath)
 			pr.PostComment("I could not fetch the latest changes from GitHub. Please try again in a few minutes.")
-			return err
-		}
-
-		if err := git.Checkout(filepath, pr.Base.Ref); err != nil {
-			pr.PostComment("I could not checkout " + pr.Base.Ref + " locally.")
-			return err
-		}
-
-		if err := git.Reset(filepath, path.Join("upstream", pr.Base.Ref)); err != nil {
-			pr.PostComment("I could not checkout " + pr.Base.Ref + " locally.")
 			return err
 		}
 	}
@@ -72,7 +64,11 @@ func GitRebase(pr *github.PullRequest) error {
 		return err
 	}
 
-	if err := git.Rebase(filepath, path.Join("origin", pr.Base.Ref)); err != nil {
+	var remote = "origin"
+	if isFork {
+		remote = "upstream"
+	}
+	if err := git.Rebase(filepath, path.Join(remote, pr.Base.Ref)); err != nil {
 		pr.PostComment("I could not rebase " + pr.Head.Ref + " with " + pr.Base.Ref + ". There are conflicts.")
 		return err
 	}
