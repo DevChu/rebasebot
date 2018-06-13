@@ -20,6 +20,32 @@ func GitRebase(pr *github.PullRequest) error {
 		}
 	}
 
+	upstreamUrl := pr.Base.Repository.CloneUrl
+	originUrl := pr.Head.Repository.CloneUrl
+
+	if upstreamUrl != originUrl {
+		if err := git.Remote(filepath, "upstream", upstreamUrl); err != nil {
+			pr.PostComment("I could not add remote: " + upstreamUrl + ".")
+			return err
+		}
+
+		if err := git.FetchUpstream(filepath); err != nil {
+			git.Prune(filepath)
+			pr.PostComment("I could not fetch the latest changes from GitHub. Please try again in a few minutes.")
+			return err
+		}
+
+		if err := git.Checkout(filepath, pr.Base.Ref); err != nil {
+			pr.PostComment("I could not checkout " + pr.Base.Ref + " locally.")
+			return err
+		}
+
+		if err := git.Reset(filepath, path.Join("upstream", pr.Base.Ref)); err != nil {
+			pr.PostComment("I could not checkout " + pr.Base.Ref + " locally.")
+			return err
+		}
+	}
+
 	if err := git.Fetch(filepath); err != nil {
 		git.Prune(filepath)
 		pr.PostComment("I could not fetch the latest changes from GitHub. Please try again in a few minutes.")

@@ -232,3 +232,35 @@ func extractRepoNameFromURL(githubURL string) string {
 	repoNameWithExt := splitBySlash[len(splitBySlash)-1]
 	return strings.Split(repoNameWithExt, ".")[0]
 }
+
+// Add remote url
+func Remote(repositoryPath, name, repositoryUrl string) error {
+	log.Printf("git.remote.started: %s=%s\n", name, repositoryUrl)
+
+	cmd := exec.Command("git", "remote", "set-url", name, repositoryUrl)
+	cmd.Dir = path.Join(repositoryPath)
+	if err := cmd.Run(); err != nil {
+		log.Println("git.remote.failed:", err.Error())
+		return err
+	}
+
+	log.Printf("git.remote.finished: %s=%s\n", name, repositoryUrl)
+
+	return nil
+}
+
+// Fetch upstream
+func FetchUpstream(repositoryPath string) error {
+	log.Println("git.fetchupstream.started:", repositoryPath)
+
+	cmd := exec.Command("git", "fetch", "upstream")
+	cmd.Dir = path.Join(repositoryPath)
+	if err := cmd.Run(); err != nil {
+		log.Println("git.fetchupstream.failed:", repositoryPath, err.Error())
+		return err
+	}
+
+	log.Println("git.fetchupstream.finished:", repositoryPath)
+
+	return nil
+}
