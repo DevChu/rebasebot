@@ -54,6 +54,7 @@ func (pr PullRequest) PostComment(msg string) (Comment, error) {
 		apiError := new(Error)
 		json.Unmarshal(responseBodyAsBytes, apiError)
 		log.Printf("github.pr.comments.create.failed status: %d, msg: %s \n", response.StatusCode, apiError.Message)
+		err = fmt.Errorf("status: %d, msg: %s", response.StatusCode, apiError.Message)
 		return comment, err
 	}
 
@@ -91,6 +92,7 @@ func (pr PullRequest) Merge() error {
 		apiError := new(Error)
 		json.Unmarshal(responseBodyAsBytes, apiError)
 		log.Printf("github.pr.merge.failed status: %d, msg: %s \n", response.StatusCode, apiError.Message)
+		err = fmt.Errorf("status: %d, msg: %s", response.StatusCode, apiError.Message)
 		return err
 	}
 
