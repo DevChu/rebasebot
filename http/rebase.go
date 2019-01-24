@@ -9,8 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/chrisledet/rebasebot/github"
 	"github.com/chrisledet/rebasebot/integrations"
@@ -56,7 +56,13 @@ func Rebase(w http.ResponseWriter, r *http.Request) {
 
 		pullRequest, err := event.Repository.FindPR(event.Issue.Number)
 		if err == nil {
-			integrations.GitRebase(pullRequest)
+			if err := integrations.GitRebase(pullRequest); err == nil {
+				if err := pullRequest.Merge(); err != nil {
+					pullRequest.PostComment("I just pushed up the changes, enjoy!")
+				} else {
+					pullRequest.PostComment("I just pushed up the changes and merged, enjoy!")
+				}
+			}
 		}
 	}()
 

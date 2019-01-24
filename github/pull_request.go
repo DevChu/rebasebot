@@ -62,3 +62,38 @@ func (pr PullRequest) PostComment(msg string) (Comment, error) {
 	log.Println("github.pr.comments.create.completed number:", pr.Number)
 	return comment, nil
 }
+
+// Merge merges a pull request (Merge Button) via GitHub API
+func (pr PullRequest) Merge() error {
+	log.Println("github.pr.merge.started")
+
+	var err error
+
+	mergePullRequestPath := fmt.Sprintf("/repos/%s/pulls/%d/merge", pr.Base.Repository.FullName, pr.Number)
+	request := NewGitHubRequest(mergePullRequestPath)
+	request.Method = "PUT"
+	response, err := httpClient.Do(request)
+
+	if err != nil {
+		log.Println("github.pr.merge.failed error:", err.Error())
+		return err
+	}
+
+	defer response.Body.Close()
+
+	responseBodyAsBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println("github.pr.merge.failed error:", err)
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		apiError := new(Error)
+		json.Unmarshal(responseBodyAsBytes, apiError)
+		log.Printf("github.pr.merge.failed status: %d, msg: %s \n", response.StatusCode, apiError.Message)
+		return err
+	}
+
+	log.Println("github.pr.merge.completed number:", pr.Number)
+	return nil
+}
